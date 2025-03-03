@@ -21,7 +21,7 @@ export function RecentUpdates() {
         const fetchUpdates = async () => {
             try {
                 const data = await getRecentUpdates()
-                setUpdates(data)
+                setUpdates(data as Update[])
             } catch (error) {
                 console.error("Error fetching updates:", error)
             } finally {

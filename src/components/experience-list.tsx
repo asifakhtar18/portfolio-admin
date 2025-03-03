@@ -37,7 +37,7 @@ export function ExperienceList() {
         const fetchExperiences = async () => {
             try {
                 const data = await getExperiences()
-                setExperiences(data)
+                setExperiences(data as Experience[])
             } catch (error) {
                 console.error("Error fetching experiences:", error)
                 toast("Failed to fetch experiences")

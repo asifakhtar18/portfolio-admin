@@ -35,7 +35,7 @@ export function ContactForm() {
             try {
                 const data = await getContactData()
                 if (data) {
-                    setFormData(data)
+                    setFormData(data as ContactData)
                 }
             } catch (error) {
                 console.error("Error fetching contact data:", error)

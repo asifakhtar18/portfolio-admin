@@ -43,7 +43,7 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
                 try {
                     const data = await getExperience(experienceId)
                     if (data) {
-                        setFormData(data)
+                        setFormData(data as unknown as Omit<ExperienceData, "id">);
                     }
                 } catch (error) {
                     console.error("Error fetching experience:", error)

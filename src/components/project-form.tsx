@@ -22,7 +22,7 @@ type ProjectData = {
     name: string
     description: string
     link: string
-    imageUrl: string
+    imageUrl?: string | null
 }
 
 export function ProjectForm({ projectId }: ProjectFormProps) {
@@ -30,7 +30,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
         name: "",
         description: "",
         link: "",
-        imageUrl: "",
+        imageUrl: "" as string | undefined | null,
     })
     const [imageFile, setImageFile] = useState<File | null>(null)
     const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -43,9 +43,9 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
         if (projectId) {
             const fetchProject = async () => {
                 try {
-                    const data = await getProject(projectId)
+                    const data = await getProject(projectId) as unknown as ProjectData
                     if (data) {
-                        setFormData(data as ProjectData)
+                        setFormData(data)
                         if (data.imageUrl) {
                             setImagePreview(data.imageUrl)
                         }

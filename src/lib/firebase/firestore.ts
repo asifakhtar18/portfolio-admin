@@ -110,8 +110,6 @@ export async function getProjects() {
       ...doc.data(),
     }));
 
-    console.log(projects);
-
     return projects;
   } catch (error) {
     console.error("Error getting projects:", error);
