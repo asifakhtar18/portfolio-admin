@@ -5,6 +5,7 @@ import {
   deleteObject,
 } from "firebase/storage";
 import { storage } from "./config";
+import { v4 as uuidv4 } from "uuid"; // You'll need to install uuid
 
 export async function uploadImage(file: File, path: string) {
   try {
@@ -19,19 +20,32 @@ export async function uploadImage(file: File, path: string) {
   }
 }
 
+export async function uploadMultipleImages(files: File[], basePath: string) {
+  try {
+    const uploadPromises = files.map(async (file) => {
+      const id = uuidv4();
+      const fileExtension = file.name.split(".").pop();
+      const path = `${basePath}/${id}.${fileExtension}`;
+      const url = await uploadImage(file, path);
+      return { id, url };
+    });
+
+    return await Promise.all(uploadPromises);
+  } catch (error) {
+    console.error("Error uploading multiple images:", error);
+    throw error;
+  }
+}
+
 export async function deleteImage(imageUrl: string) {
   try {
-    // Extract the path from the URL
     const urlObj = new URL(imageUrl);
     const pathWithToken = urlObj.pathname;
 
-    // Remove the /o/ prefix and decode the path
     const path = decodeURIComponent(pathWithToken.replace(/^\/o\//, ""));
 
-    // Create a reference to the file
     const imageRef = ref(storage, path);
 
-    // Delete the file
     await deleteObject(imageRef);
 
     return true;

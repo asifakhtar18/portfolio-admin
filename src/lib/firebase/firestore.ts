@@ -11,9 +11,12 @@ import {
   query,
   orderBy,
   limit,
+  where,
 } from "firebase/firestore";
 import { db } from "./config";
 import { deleteImage } from "./storage";
+import type { Skill, Testimonial, Project, Message } from "../types";
+import { get } from "http";
 
 // About Section
 export async function getAboutData() {
@@ -97,36 +100,53 @@ export async function updateSkills(skills: string[]) {
   }
 }
 
+export async function deleteSkill(id: string): Promise<void> {
+  try {
+    await deleteDoc(doc(db, "skills", id));
+  } catch (error) {
+    console.error("Error deleting skill:", error);
+    throw error;
+  }
+}
+
 // Projects Section
-export async function getProjects() {
+export async function getProjects(): Promise<Project[]> {
   try {
     const projectsRef = collection(db, "projects");
     const querySnapshot = await getDocs(
       query(projectsRef, orderBy("createdAt", "desc"))
     );
 
-    const projects = querySnapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    }));
+    const projects = querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      };
+    });
 
-    return projects;
+    return projects as Project[];
   } catch (error) {
     console.error("Error getting projects:", error);
     throw error;
   }
 }
 
-export async function getProject(id: string) {
+export async function getProject(id: string): Promise<Project | null> {
   try {
     const docRef = doc(db, "projects", id);
     const docSnap = await getDoc(docRef);
 
     if (docSnap.exists()) {
+      const data = docSnap.data();
       return {
         id: docSnap.id,
-        ...docSnap.data(),
-      };
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+        updatedAt: data.updatedAt?.toDate() || new Date(),
+      } as Project;
     }
 
     return null;
@@ -136,7 +156,9 @@ export async function getProject(id: string) {
   }
 }
 
-export async function createProject(data: any) {
+export async function createProject(
+  data: Omit<Project, "id" | "createdAt" | "updatedAt">
+): Promise<string> {
   try {
     const docRef = await addDoc(collection(db, "projects"), {
       ...data,
@@ -158,7 +180,10 @@ export async function createProject(data: any) {
   }
 }
 
-export async function updateProject(id: string, data: any) {
+export async function updateProject(
+  id: string,
+  data: Partial<Project>
+): Promise<void> {
   try {
     const docRef = doc(db, "projects", id);
     await updateDoc(docRef, {
@@ -169,32 +194,34 @@ export async function updateProject(id: string, data: any) {
     // Add to updates collection
     await addDoc(collection(db, "updates"), {
       section: "Projects",
-      title: `Project "${data.name}" updated`,
+      title: `Project "${data.name || "Unknown"}" updated`,
       updatedAt: serverTimestamp(),
     });
-
-    return true;
   } catch (error) {
     console.error("Error updating project:", error);
     throw error;
   }
 }
 
-export async function deleteProject(id: string) {
+export async function deleteProject(id: string): Promise<void> {
   try {
-    // Get project data to delete image
+    // Get project data to delete images
     const projectRef = doc(db, "projects", id);
     const projectSnap = await getDoc(projectRef);
 
     if (projectSnap.exists()) {
-      const projectData = projectSnap.data();
+      const projectData = projectSnap.data() as Project;
 
       // Delete the project document
       await deleteDoc(projectRef);
 
-      // Delete project image if it exists
-      if (projectData.imageUrl) {
-        await deleteImage(projectData.imageUrl);
+      // Delete all project images
+      if (projectData.images && projectData.images.length > 0) {
+        for (const image of projectData.images) {
+          if (image.url) {
+            await deleteImage(image.url);
+          }
+        }
       }
 
       // Add to updates collection
@@ -204,8 +231,6 @@ export async function deleteProject(id: string) {
         updatedAt: serverTimestamp(),
       });
     }
-
-    return true;
   } catch (error) {
     console.error("Error deleting project:", error);
     throw error;
@@ -408,6 +433,150 @@ export async function getRecentUpdates() {
     }));
   } catch (error) {
     console.error("Error getting recent updates:", error);
+    throw error;
+  }
+}
+
+// Testimonials functions
+export async function getTestimonials(
+  approvedOnly = false
+): Promise<Testimonial[]> {
+  try {
+    const testimonialsRef = collection(db, "testimonials");
+    let queryRef = query(testimonialsRef, orderBy("createdAt", "desc"));
+
+    if (approvedOnly) {
+      queryRef = query(queryRef, where("approved", "==", true));
+    }
+
+    const querySnapshot = await getDocs(queryRef);
+
+    return querySnapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        id: doc.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+      } as Testimonial;
+    });
+  } catch (error) {
+    console.error("Error getting testimonials:", error);
+    throw error;
+  }
+}
+
+export async function getTestimonial(id: string): Promise<Testimonial | null> {
+  try {
+    const docRef = doc(db, "testimonials", id);
+    const docSnap = await getDoc(docRef);
+
+    if (docSnap.exists()) {
+      const data = docSnap.data();
+      return {
+        id: docSnap.id,
+        ...data,
+        createdAt: data.createdAt?.toDate() || new Date(),
+      } as Testimonial;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error getting testimonial:", error);
+    throw error;
+  }
+}
+
+export async function createTestimonial(
+  data: Omit<Testimonial, "id" | "createdAt" | "approved">
+): Promise<string> {
+  try {
+    const docRef = await addDoc(collection(db, "testimonials"), {
+      ...data,
+      approved: false, // New testimonials are not approved by default
+      createdAt: serverTimestamp(),
+    });
+
+    // Add to updates collection
+    await addDoc(collection(db, "updates"), {
+      section: "Testimonials",
+      title: `New testimonial from "${data.name}" received`,
+      updatedAt: serverTimestamp(),
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error creating testimonial:", error);
+    throw error;
+  }
+}
+
+export async function updateTestimonial(
+  id: string,
+  data: Partial<Testimonial>
+): Promise<void> {
+  try {
+    const docRef = doc(db, "testimonials", id);
+    await updateDoc(docRef, {
+      ...data,
+      updatedAt: serverTimestamp(),
+    });
+
+    // Add to updates collection if approving/disapproving
+    if (data.approved !== undefined) {
+      await addDoc(collection(db, "updates"), {
+        section: "Testimonials",
+        title: `Testimonial ${data.approved ? "approved" : "disapproved"}`,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    console.error("Error updating testimonial:", error);
+    throw error;
+  }
+}
+
+export async function deleteTestimonial(id: string): Promise<void> {
+  try {
+    // Get testimonial data for update log
+    const testimonialRef = doc(db, "testimonials", id);
+    const testimonialSnap = await getDoc(testimonialRef);
+
+    if (testimonialSnap.exists()) {
+      const testimonialData = testimonialSnap.data();
+
+      // Delete the testimonial document
+      await deleteDoc(testimonialRef);
+
+      // Delete avatar image if it exists
+      if (testimonialData.avatar) {
+        await deleteImage(testimonialData.avatar);
+      }
+
+      // Add to updates collection
+      await addDoc(collection(db, "updates"), {
+        section: "Testimonials",
+        title: `Testimonial from "${testimonialData.name}" deleted`,
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (error) {
+    console.error("Error deleting testimonial:", error);
+    throw error;
+  }
+}
+
+export async function getMessages(): Promise<Message[]> {
+  try {
+    const messagesRef = collection(db, "contacts");
+    const querySnapshot = await getDocs(messagesRef);
+    const messages = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate() || new Date(),
+    })) as Message[];
+    return messages;
+  } catch (error) {
+    console.error("Error getting messages:", error);
     throw error;
   }
 }

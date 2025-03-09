@@ -1,27 +1,30 @@
 "use client"
 
 import type React from "react"
-
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { toast } from "sonner"
 import { Spinner } from "@/components/ui/spinner"
 import { getExperience, createExperience, updateExperience } from "@/lib/firebase/firestore"
+import { uploadImage, deleteImage } from "@/lib/firebase/storage"
+import { toast } from "sonner"
+
 
 type ExperienceFormProps = {
     experienceId?: string
 }
 
-type ExperienceData = {
+export type ExperienceData = {
     title: string
     company: string
     startDate: string
     endDate: string
     description: string
+    imageUrl?: string
 }
 
 export function ExperienceForm({ experienceId }: ExperienceFormProps) {
@@ -31,9 +34,12 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
         startDate: "",
         endDate: "",
         description: "",
+        imageUrl: "",
     })
     const [loading, setLoading] = useState(experienceId ? true : false)
     const [saving, setSaving] = useState(false)
+    const [imageFile, setImageFile] = useState<File | null>(null)
+    const [imagePreview, setImagePreview] = useState<string | null>(null)
     const router = useRouter()
 
 
@@ -41,9 +47,12 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
         if (experienceId) {
             const fetchExperience = async () => {
                 try {
-                    const data = await getExperience(experienceId)
+                    const data = await getExperience(experienceId) as unknown as ExperienceData
                     if (data) {
-                        setFormData(data as unknown as Omit<ExperienceData, "id">);
+                        setFormData(data)
+                        if (data.imageUrl && data.imageUrl !== "") {
+                            setImagePreview(data.imageUrl)
+                        }
                     }
                 } catch (error) {
                     console.error("Error fetching experience:", error)
@@ -55,11 +64,19 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
 
             fetchExperience()
         }
-    }, [experienceId])
+    }, [experienceId, toast])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
         setFormData((prev) => ({ ...prev, [name]: value }))
+    }
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0]
+            setImageFile(file)
+            setImagePreview(URL.createObjectURL(file))
+        }
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -67,12 +84,30 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
         setSaving(true)
 
         try {
+            let imageUrl = formData.imageUrl || ""
+
+            if (imageFile) {
+                if (formData.imageUrl) {
+                    await deleteImage(formData.imageUrl)
+                }
+
+                imageUrl = await uploadImage(
+                    imageFile,
+                    `experience/${Date.now()}_${formData.company.replace(/\s+/g, "-").toLowerCase()}`,
+                )
+            }
+
+            const experienceData = {
+                ...formData,
+                imageUrl,
+            }
+
             if (experienceId) {
-                await updateExperience(experienceId, formData)
+                await updateExperience(experienceId, experienceData)
                 toast("Experience updated successfully")
             } else {
-                await createExperience(formData)
-                toast("Experience added successfully")
+                await createExperience(experienceData)
+                toast("Experience created successfully")
                 router.push("/admin/experience")
             }
         } catch (error) {
@@ -153,6 +188,22 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
                     rows={4}
                     required
                 />
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="image">Company Logo or Related Image (Optional)</Label>
+                <Input id="image" type="file" accept="image/*" onChange={handleImageChange} className="cursor-pointer" />
+
+                {imagePreview && (
+                    <div className="mt-4 relative h-40 w-full sm:w-60 border rounded-md overflow-hidden">
+                        <Image
+                            src={imagePreview || "/placeholder.svg"}
+                            alt="Experience image preview"
+                            fill
+                            className="object-contain"
+                        />
+                    </div>
+                )}
             </div>
 
             <div className="flex gap-2">
