@@ -37,7 +37,7 @@ export function ProjectsList() {
         const fetchProjects = async () => {
             try {
                 const data = await getProjects()
-                setProjects(data as Project[])
+                setProjects(data as unknown as Project[])
             } catch (error) {
                 console.error("Error fetching projects:", error)
                 toast("Failed to fetch projects")

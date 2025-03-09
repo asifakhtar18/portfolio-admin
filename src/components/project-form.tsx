@@ -81,7 +81,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
         }
 
         fetchData()
-    }, [projectId, toast])
+    }, [projectId])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target
@@ -356,10 +356,10 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                         <Label>Selected Technologies</Label>
                         <div className="flex flex-wrap gap-2 mt-2">
                             {(project.technologies || []).map((techId) => {
-                                const skill = skills.find((s) => s.id === techId)
+                                const skill = skills.find((s) => s === techId)
                                 return skill ? (
                                     <Badge key={techId} variant="secondary">
-                                        {skill.name}
+                                        {skill}
                                         <button
                                             type="button"
                                             onClick={() => toggleTechnology(techId)}

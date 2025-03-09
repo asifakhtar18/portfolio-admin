@@ -45,7 +45,7 @@ export function PortfolioPreview() {
                     getSkills(),
                     getProjects(),
                     getExperiences(),
-                    getTestimonials(true), // Get only approved testimonials
+                    getTestimonials(true),
                     getContactData(),
                 ])
 
@@ -112,7 +112,6 @@ export function PortfolioPreview() {
 
                 {data.skills.length > 0 ? (
                     <div className="space-y-6">
-                        {/* Group skills by category */}
                         {data.skills.map((skill, index) => (
                             <div key={index} className="space-y-2">
                                 <p>{skill.name}</p>
@@ -124,16 +123,13 @@ export function PortfolioPreview() {
                 )}
             </section>
 
-            {/* Projects Section */}
             <section className="mb-16">
                 <h2 className="text-2xl font-bold mb-6 text-center">Projects</h2>
 
                 {data.projects.length > 0 ? (
                     <div className="space-y-8">
                         {data.projects.map((project) => {
-                            // Find main image
                             const mainImage = project.images?.find((img) => img.isMain) || project.images?.[0]
-                            // Get skills used in this project
                             const projectSkills = data.skills.filter((skill) => project.technologies?.includes(skill.id))
 
                             return (
@@ -265,7 +261,7 @@ export function PortfolioPreview() {
                                     </div>
                                 </div>
 
-                                <blockquote className="italic text-muted-foreground mb-4">"{testimonial.message}"</blockquote>
+                                <blockquote className="italic text-muted-foreground mb-4">&ldquo;{testimonial.message}&rdquo;</blockquote>
 
                                 <div className="flex">
                                     {Array.from({ length: 5 }).map((_, i) => (
