@@ -263,10 +263,6 @@ function TestimonialCard({
                                 </Button>
                             )}
 
-                            <Button size="icon" variant="ghost" onClick={onEdit} title="Edit">
-                                <Edit className="size-4" />
-                            </Button>
-
                             <Button size="icon" variant="ghost" onClick={onDelete} title="Delete">
                                 <Trash2 className="size-4" />
                             </Button>

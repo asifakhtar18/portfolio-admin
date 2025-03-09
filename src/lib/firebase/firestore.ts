@@ -520,13 +520,13 @@ export async function updateTestimonial(
       updatedAt: serverTimestamp(),
     });
 
-    if (data.isApproved !== undefined) {
-      await addDoc(collection(db, "updates"), {
-        section: "Testimonials",
-        title: `Testimonial ${data.isApproved ? "approved" : "disapproved"}`,
-        updatedAt: serverTimestamp(),
-      });
-    }
+    // if (data.isApproved !== undefined) {
+    //   await addDoc(collection(db, "updates"), {
+    //     section: "Testimonials",
+    //     title: `Testimonial ${data.isApproved ? "approved" : "disapproved"}`,
+    //     updatedAt: serverTimestamp(),
+    //   });
+    // }
   } catch (error) {
     console.error("Error updating testimonial:", error);
     throw error;
@@ -535,22 +535,18 @@ export async function updateTestimonial(
 
 export async function deleteTestimonial(id: string): Promise<void> {
   try {
-    // Get testimonial data for update log
     const testimonialRef = doc(db, "testimonials", id);
     const testimonialSnap = await getDoc(testimonialRef);
 
     if (testimonialSnap.exists()) {
       const testimonialData = testimonialSnap.data();
 
-      // Delete the testimonial document
       await deleteDoc(testimonialRef);
 
-      // Delete avatar image if it exists
       if (testimonialData.avatar) {
         await deleteImage(testimonialData.avatar);
       }
 
-      // Add to updates collection
       await addDoc(collection(db, "updates"), {
         section: "Testimonials",
         title: `Testimonial from "${testimonialData.name}" deleted`,
