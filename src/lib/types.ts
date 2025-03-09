@@ -45,12 +45,12 @@ export type Experience = {
 export type Testimonial = {
   id: string;
   name: string;
-  position: string;
+  role: string;
   company: string;
   message: string;
   avatar?: string;
   rating: number; // 1-5 stars
-  approved: boolean;
+  isApproved: boolean;
   createdAt: Date;
 };
 

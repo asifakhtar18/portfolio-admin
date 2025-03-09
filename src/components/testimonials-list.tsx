@@ -17,17 +17,6 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { getTestimonials, updateTestimonial, deleteTestimonial } from "@/lib/firebase/firestore"
 import type { Testimonial } from "@/lib/types"
 
@@ -46,7 +35,7 @@ export function TestimonialsList() {
     const fetchTestimonials = async () => {
         try {
             setLoading(true)
-            const data = await getTestimonials(false) // Get all testimonials, including unapproved
+            const data = await getTestimonials(false)
             setTestimonials(data)
         } catch (error) {
             console.error("Error fetching testimonials:", error)
@@ -56,13 +45,12 @@ export function TestimonialsList() {
         }
     }
 
-    const handleUpdateStatus = async (id: string, approved: boolean) => {
+    const handleUpdateStatus = async (id: string, isApproved: boolean) => {
         try {
             setSaving(true)
-            await updateTestimonial(id, { approved })
+            await updateTestimonial(id, { isApproved })
 
-            // Update local state
-            setTestimonials((prev) => prev.map((item) => (item.id === id ? { ...item, approved } : item)))
+            setTestimonials((prev) => prev.map((item) => (item.id === id ? { ...item, isApproved } : item)))
 
             toast("Testimonial status updated successfully")
         } catch (error) {
@@ -129,8 +117,8 @@ export function TestimonialsList() {
         )
     }
 
-    const pendingTestimonials = testimonials.filter((item) => !item.approved)
-    const approvedTestimonials = testimonials.filter((item) => item.approved)
+    const pendingTestimonials = testimonials.filter((item) => !item.isApproved)
+    const approvedTestimonials = testimonials.filter((item) => item.isApproved)
 
     return (
         <div>
@@ -184,78 +172,7 @@ export function TestimonialsList() {
                 </TabsContent>
             </Tabs>
 
-            {/* Edit Dialog */}
-            <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-                <DialogContent className="sm:max-w-[525px]">
-                    <DialogHeader>
-                        <DialogTitle>Edit Testimonial</DialogTitle>
-                        <DialogDescription>Make changes to the testimonial details.</DialogDescription>
-                    </DialogHeader>
-                    {testimonialToEdit && (
-                        <div className="space-y-4 py-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-name">Name</Label>
-                                <Input
-                                    id="edit-name"
-                                    value={testimonialToEdit.name}
-                                    onChange={(e) => setTestimonialToEdit({ ...testimonialToEdit, name: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-position">Position</Label>
-                                <Input
-                                    id="edit-position"
-                                    value={testimonialToEdit.position}
-                                    onChange={(e) => setTestimonialToEdit({ ...testimonialToEdit, position: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-company">Company</Label>
-                                <Input
-                                    id="edit-company"
-                                    value={testimonialToEdit.company}
-                                    onChange={(e) => setTestimonialToEdit({ ...testimonialToEdit, company: e.target.value })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-message">Message</Label>
-                                <Textarea
-                                    id="edit-message"
-                                    value={testimonialToEdit.message}
-                                    onChange={(e) => setTestimonialToEdit({ ...testimonialToEdit, message: e.target.value })}
-                                    rows={4}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <Label htmlFor="edit-rating">Rating (1-5)</Label>
-                                <Input
-                                    id="edit-rating"
-                                    type="number"
-                                    min={1}
-                                    max={5}
-                                    value={testimonialToEdit.rating}
-                                    onChange={(e) =>
-                                        setTestimonialToEdit({
-                                            ...testimonialToEdit,
-                                            rating: Math.min(5, Math.max(1, Number.parseInt(e.target.value) || 1)),
-                                        })
-                                    }
-                                />
-                            </div>
-                        </div>
-                    )}
-                    <DialogFooter>
-                        <Button variant="outline" onClick={() => setEditDialogOpen(false)}>
-                            Cancel
-                        </Button>
-                        <Button onClick={handleEditSubmit} disabled={saving}>
-                            {saving ? "Saving..." : "Save Changes"}
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
 
-            {/* Delete Confirmation */}
             <AlertDialog open={!!testimonialToDelete} onOpenChange={() => setTestimonialToDelete(null)}>
                 <AlertDialogContent>
                     <AlertDialogHeader>
@@ -324,7 +241,7 @@ function TestimonialCard({
                     </div>
 
                     <p className="text-sm text-muted-foreground">
-                        {testimonial.position}
+                        {testimonial.role}
                         {testimonial.company ? ` at ${testimonial.company}` : ""}
                     </p>
 

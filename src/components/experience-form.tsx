@@ -64,7 +64,7 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
 
             fetchExperience()
         }
-    }, [experienceId, toast])
+    }, [experienceId])
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target

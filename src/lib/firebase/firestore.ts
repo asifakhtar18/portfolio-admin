@@ -443,15 +443,11 @@ export async function getTestimonials(
 ): Promise<Testimonial[]> {
   try {
     const testimonialsRef = collection(db, "testimonials");
-    let queryRef = query(testimonialsRef, orderBy("createdAt", "desc"));
-
-    if (approvedOnly) {
-      queryRef = query(queryRef, where("approved", "==", true));
-    }
+    let queryRef = query(testimonialsRef);
 
     const querySnapshot = await getDocs(queryRef);
 
-    return querySnapshot.docs.map((doc) => {
+    const testimonials = querySnapshot.docs.map((doc) => {
       const data = doc.data();
       return {
         id: doc.id,
@@ -459,6 +455,9 @@ export async function getTestimonials(
         createdAt: data.createdAt?.toDate() || new Date(),
       } as Testimonial;
     });
+
+    console.log(testimonials);
+    return testimonials;
   } catch (error) {
     console.error("Error getting testimonials:", error);
     throw error;
@@ -521,11 +520,10 @@ export async function updateTestimonial(
       updatedAt: serverTimestamp(),
     });
 
-    // Add to updates collection if approving/disapproving
-    if (data.approved !== undefined) {
+    if (data.isApproved !== undefined) {
       await addDoc(collection(db, "updates"), {
         section: "Testimonials",
-        title: `Testimonial ${data.approved ? "approved" : "disapproved"}`,
+        title: `Testimonial ${data.isApproved ? "approved" : "disapproved"}`,
         updatedAt: serverTimestamp(),
       });
     }

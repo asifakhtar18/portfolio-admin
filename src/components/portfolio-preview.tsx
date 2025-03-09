@@ -255,7 +255,7 @@ export function PortfolioPreview() {
                                     <div>
                                         <h3 className="font-medium">{testimonial.name}</h3>
                                         <p className="text-sm text-muted-foreground">
-                                            {testimonial.position}
+                                            {testimonial.role}
                                             {testimonial.company ? ` at ${testimonial.company}` : ""}
                                         </p>
                                     </div>
