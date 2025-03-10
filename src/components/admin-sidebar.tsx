@@ -11,10 +11,10 @@ const navItems = [
     { href: "/admin/skills", label: "Skills", icon: Code },
     { href: "/admin/projects", label: "Projects", icon: FileText },
     { href: "/admin/experience", label: "Experience", icon: Briefcase },
-    { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquare }, // New testimonials section
     { href: "/admin/contact", label: "Contact", icon: Phone },
-    { href: "/admin/preview", label: "Preview", icon: Eye },
     { href: "/admin/messages", label: "Messages", icon: MessageCircle },
+    { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquare }, // New testimonials section
+    { href: "/admin/preview", label: "Preview", icon: Eye },
 ]
 
 export function AdminSidebar() {
