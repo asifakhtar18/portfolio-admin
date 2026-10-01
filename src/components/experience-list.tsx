@@ -16,16 +16,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { getExperiences, deleteExperience } from "@/lib/firebase/firestore"
+import { getExperiences, deleteExperience } from "@/lib/api/experiences"
+import { ApiError } from "@/lib/api/client"
+import type { ExperienceResponse } from "@/lib/api/types"
 
-type Experience = {
-    id: string
-    title: string
-    company: string
-    startDate: string
-    endDate: string
-    description: string
-}
+type Experience = ExperienceResponse
 
 export function ExperienceList() {
     const [experiences, setExperiences] = useState<Experience[]>([])
@@ -37,10 +32,10 @@ export function ExperienceList() {
         const fetchExperiences = async () => {
             try {
                 const data = await getExperiences()
-                setExperiences(data as Experience[])
+                setExperiences(data)
             } catch (error) {
                 console.error("Error fetching experiences:", error)
-                toast("Failed to fetch experiences")
+                toast(error instanceof ApiError ? error.message : "Failed to fetch experiences")
             } finally {
                 setLoading(false)
             }
@@ -58,7 +53,7 @@ export function ExperienceList() {
             toast("Experience deleted successfully")
         } catch (error) {
             console.error("Error deleting experience:", error)
-            toast("Failed to delete experience")
+            toast(error instanceof ApiError ? error.message : "Failed to delete experience")
         } finally {
             setExperienceToDelete(null)
         }

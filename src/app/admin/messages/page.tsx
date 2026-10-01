@@ -1,14 +1,9 @@
 'use client'
-import { getMessages } from "@/lib/firebase/firestore";
+import { getMessages } from "@/lib/api/messages";
+import type { MessageResponse } from "@/lib/api/types";
 import { useEffect, useState } from "react";
 
-interface Message {
-    id: string;
-    name: string;
-    email: string;
-    message: string;
-    createdAt: any;
-}
+type Message = MessageResponse
 
 export default function MessagesPage() {
     const [messages, setMessages] = useState<Message[]>([]);
@@ -60,20 +55,16 @@ export default function MessagesPage() {
                             </div>
                             <div className="flex items-center justify-between">
                                 <div className="text-xs text-muted-foreground">
-                                    {new Date(typeof message.createdAt.toDate === 'function'
-                                        ? message.createdAt.toDate()
-                                        : message.createdAt).toLocaleDateString('en-US', {
-                                            day: 'numeric',
-                                            month: 'short',
-                                            year: 'numeric',
-                                        })}
+                                    {new Date(message.createdAt).toLocaleDateString('en-US', {
+                                        day: 'numeric',
+                                        month: 'short',
+                                        year: 'numeric',
+                                    })}
                                     {' '}
-                                    {new Date(typeof message.createdAt.toDate === 'function'
-                                        ? message.createdAt.toDate()
-                                        : message.createdAt).toLocaleTimeString('en-US', {
-                                            hour: '2-digit',
-                                            minute: '2-digit',
-                                        })}
+                                    {new Date(message.createdAt).toLocaleTimeString('en-US', {
+                                        hour: '2-digit',
+                                        minute: '2-digit',
+                                    })}
                                 </div>
                                 <a
                                     href={`mailto:${message.email}?subject=Re: Message from Portfolio - ${message.name}`}

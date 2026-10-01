@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { Home, User, Briefcase, Code, Phone, FileText, Eye, MessageSquare, MessageCircle } from "lucide-react"
+import { Home, User, Briefcase, Code, Phone, FileText, Eye, MessageSquare, MessageCircle, Settings, BookOpen } from "lucide-react"
 
 const navItems = [
     { href: "/admin", label: "Dashboard", icon: Home },
@@ -15,6 +15,8 @@ const navItems = [
     { href: "/admin/messages", label: "Messages", icon: MessageCircle },
     { href: "/admin/testimonials", label: "Testimonials", icon: MessageSquare }, // New testimonials section
     { href: "/admin/preview", label: "Preview", icon: Eye },
+    { href: "/admin/api-docs", label: "API Docs", icon: BookOpen },
+    { href: "/admin/settings", label: "Settings", icon: Settings },
 ]
 
 export function AdminSidebar() {

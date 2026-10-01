@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { toast } from "sonner"
 import { Spinner } from "@/components/ui/spinner"
 import { Badge } from "@/components/ui/badge"
-import { getSkills, updateSkills } from "@/lib/firebase/firestore"
+import { getSkills, updateSkills } from "@/lib/api/skills"
 
 export function SkillsForm() {
     const [skills, setSkills] = useState<string[]>([])
@@ -23,8 +23,8 @@ export function SkillsForm() {
         const fetchSkills = async () => {
             try {
                 const data = await getSkills()
-                if (data) {
-                    setSkills(data)
+                if (data?.items) {
+                    setSkills(data.items)
                 }
             } catch (error) {
                 console.error("Error fetching skills:", error)

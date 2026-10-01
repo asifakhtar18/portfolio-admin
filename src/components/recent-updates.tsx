@@ -3,15 +3,11 @@
 import { useEffect, useState } from "react"
 import { formatDistanceToNow } from "date-fns"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { getRecentUpdates } from "@/lib/firebase/firestore"
+import { getRecentUpdates } from "@/lib/api/updates"
+import type { UpdateLogResponse } from "@/lib/api/types"
 import { Spinner } from "@/components/ui/spinner"
 
-type Update = {
-    id: string
-    section: string
-    updatedAt: Date
-    title: string
-}
+type Update = UpdateLogResponse
 
 export function RecentUpdates() {
     const [updates, setUpdates] = useState<Update[]>([])
@@ -21,7 +17,7 @@ export function RecentUpdates() {
         const fetchUpdates = async () => {
             try {
                 const data = await getRecentUpdates()
-                setUpdates(data as Update[])
+                setUpdates(data)
             } catch (error) {
                 console.error("Error fetching updates:", error)
             } finally {
@@ -54,7 +50,7 @@ export function RecentUpdates() {
                                     <p className="text-sm text-muted-foreground">{update.section}</p>
                                 </div>
                                 <p className="text-sm text-muted-foreground">
-                                    {formatDistanceToNow(update.updatedAt, { addSuffix: true })}
+                                    {formatDistanceToNow(new Date(update.updatedAt), { addSuffix: true })}
                                 </p>
                             </div>
                         ))}

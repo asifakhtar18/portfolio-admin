@@ -21,10 +21,11 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { getProject, createProject, updateProject } from "@/lib/firebase/firestore"
-import { uploadMultipleImages } from "@/lib/firebase/storage"
-import { getSkills } from "@/lib/firebase/firestore"
-import type { Project, ProjectImage, Skill } from "@/lib/types"
+import { getProject, createProject, updateProject, uploadProjectImages } from "@/lib/api/projects"
+import { getSkills } from "@/lib/api/skills"
+import { ApiError } from "@/lib/api/client"
+import type { ProjectInput } from "@/lib/api/types"
+import type { Project } from "@/lib/types"
 
 type ProjectFormProps = {
     projectId?: string
@@ -55,7 +56,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 setLoading(true)
 
                 const skillsData = await getSkills()
-                setSkills(skillsData)
+                setSkills(skillsData.items)
 
 
                 if (projectId) {
@@ -63,9 +64,11 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                     if (projectData) {
                         setProject(projectData)
 
-                        const mainImageIndex = projectData.images?.findIndex((img) => img.isMain) || 0
-                        if (mainImageIndex >= 0) {
-                            setMainImageIndex(mainImageIndex)
+                        const foundMainIndex = projectData.images?.findIndex((img) => img.isMain) ?? -1
+                        if (foundMainIndex >= 0) {
+                            setMainImageIndex(foundMainIndex)
+                        } else if ((projectData.images?.length ?? 0) > 0) {
+                            setMainImageIndex(0)
                         }
 
                         const previews = projectData.images?.map((img) => img.url) || []
@@ -74,7 +77,7 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 }
             } catch (error) {
                 console.error("Error fetching data:", error)
-                toast("Failed to fetch data")
+                toast(error instanceof ApiError ? error.message : "Failed to fetch data")
             } finally {
                 setLoading(false)
             }
@@ -163,47 +166,37 @@ export function ProjectForm({ projectId }: ProjectFormProps) {
                 return
             }
 
-            let projectImages: ProjectImage[] = [...(project.images || [])]
-
-            if (imageFiles.length > 0) {
-                const uploadedImages = await uploadMultipleImages(
-                    imageFiles,
-                    `projects/${project.name.replace(/\s+/g, "-").toLowerCase()}`,
-                )
-
-                const newImages: ProjectImage[] = uploadedImages.map((img) => ({
-                    id: img.id,
-                    url: img.url,
-                    alt: project.name || "Project image",
-                    isMain: false,
-                }))
-
-                projectImages = [...projectImages, ...newImages]
+            // Build the JSON fields the API accepts (server manages images
+            // through the dedicated upload endpoint).
+            const projectInput: ProjectInput = {
+                name: project.name.trim(),
+                description: project.description.trim(),
+                technologies: project.technologies || [],
+                link: project.link || undefined,
+                sourceCode: project.sourceCode || undefined,
+                featured: project.featured ?? false,
             }
 
-            if (mainImageIndex !== null && projectImages.length > 0) {
-                projectImages = projectImages.map((img, idx) => ({
-                    ...img,
-                    isMain: idx === mainImageIndex,
-                }))
-            }
-
-            const projectData: Partial<Project> = {
-                ...project,
-                images: projectImages,
-            }
-
+            // 1) Save the project's JSON fields first so we have an id.
+            let saved
             if (projectId) {
-                await updateProject(projectId, projectData)
-                toast("Project updated successfully")
+                saved = await updateProject(projectId, projectInput)
             } else {
-                await createProject(projectData as Omit<Project, "id" | "createdAt" | "updatedAt">)
-                toast("Project created successfully")
-                router.push("/admin/projects")
+                saved = await createProject(projectInput)
             }
+
+            // 2) If the tenant selected new image files, upload them to the
+            // tenant's Tenant_Blob via the dedicated endpoint. The API appends
+            // the images server-side and returns the authoritative project.
+            if (imageFiles.length > 0) {
+                saved = await uploadProjectImages(saved.id, imageFiles)
+            }
+
+            toast(projectId ? "Project updated successfully" : "Project created successfully")
+            router.push("/admin/projects")
         } catch (error) {
             console.error("Error saving project:", error)
-            toast("Failed to save project")
+            toast(error instanceof ApiError ? error.message : "Failed to save project")
         } finally {
             setSaving(false)
         }

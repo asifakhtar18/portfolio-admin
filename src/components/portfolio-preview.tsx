@@ -3,15 +3,17 @@
 import { useEffect, useState } from "react"
 import Image from "next/image"
 import { Spinner } from "@/components/ui/spinner"
-import {
-    getAboutData,
-    getSkills,
-    getProjects,
-    getExperiences,
-    getContactData,
-    getTestimonials,
-} from "@/lib/firebase/firestore"
-import type { Skill, Project, Experience, Testimonial } from "@/lib/types"
+import { getAbout } from "@/lib/api/about"
+import { getSkills } from "@/lib/api/skills"
+import { getProjects } from "@/lib/api/projects"
+import { getExperiences } from "@/lib/api/experiences"
+import { getContactInfo } from "@/lib/api/contact"
+import { getTestimonials } from "@/lib/api/testimonials"
+import type {
+    ProjectResponse,
+    ExperienceResponse,
+    TestimonialResponse,
+} from "@/lib/api/types"
 
 type PortfolioData = {
     about: {
@@ -19,10 +21,10 @@ type PortfolioData = {
         designation: string
         profileImage?: string
     }
-    skills: Skill[]
-    projects: Project[]
-    experiences: Experience[]
-    testimonials: Testimonial[]
+    skills: string[]
+    projects: ProjectResponse[]
+    experiences: ExperienceResponse[]
+    testimonials: TestimonialResponse[]
     contact: {
         email: string
         phone: string
@@ -40,23 +42,27 @@ export function PortfolioPreview() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const [about, skillsArray, projects, experiences, testimonials, contact] = await Promise.all([
-                    getAboutData(),
+                const [about, skills, projects, experiences, testimonials, contact] = await Promise.all([
+                    getAbout(),
                     getSkills(),
                     getProjects(),
                     getExperiences(),
-                    getTestimonials(true),
-                    getContactData(),
+                    getTestimonials(),
+                    getContactInfo(),
                 ])
 
                 setData({
-                    about: (about as { bio: string; designation: string; profileImage?: string }) || { bio: "", designation: "" },
-                    skills: skillsArray || [],
+                    about: about
+                        ? { bio: about.bio, designation: about.designation, profileImage: about.profileImage }
+                        : { bio: "", designation: "" },
+                    skills: skills?.items ?? [],
                     projects: projects || [],
-                    experiences: (experiences as Experience[]) || [],
-                    testimonials: testimonials || [],
-                    contact: (contact as { email: string; phone: string; socialMedia: { platform: string; url: string; }[] }) ||
-                        { email: "", phone: "", socialMedia: [] },
+                    experiences: experiences || [],
+                    // Show only approved testimonials in the preview.
+                    testimonials: (testimonials || []).filter((t) => t.isApproved),
+                    contact: contact
+                        ? { email: contact.email, phone: contact.phone, socialMedia: contact.socialMedia ?? [] }
+                        : { email: "", phone: "", socialMedia: [] },
                 })
             } catch (error) {
                 console.error("Error fetching portfolio data:", error)
@@ -114,7 +120,7 @@ export function PortfolioPreview() {
                     <div className="space-y-6">
                         {data.skills.map((skill, index) => (
                             <div key={index} className="space-y-2">
-                                <p>{skill.name}</p>
+                                <p>{skill}</p>
                             </div>
                         ))}
                     </div>
@@ -130,7 +136,7 @@ export function PortfolioPreview() {
                     <div className="space-y-8">
                         {data.projects.map((project) => {
                             const mainImage = project.images?.find((img) => img.isMain) || project.images?.[0]
-                            const projectSkills = data.skills.filter((skill) => project.technologies?.includes(skill.id))
+                            const projectSkills = project.technologies || []
 
                             return (
                                 <div key={project.id} className="border rounded-lg overflow-hidden shadow-sm">
@@ -152,8 +158,8 @@ export function PortfolioPreview() {
                                                     <h4 className="text-sm font-medium mb-2">Technologies</h4>
                                                     <div className="flex flex-wrap gap-1">
                                                         {projectSkills.map((skill) => (
-                                                            <span key={skill.id} className="px-2 py-1 text-xs rounded-full bg-muted">
-                                                                {skill.name}
+                                                            <span key={skill} className="px-2 py-1 text-xs rounded-full bg-muted">
+                                                                {skill}
                                                             </span>
                                                         ))}
                                                     </div>
@@ -191,7 +197,7 @@ export function PortfolioPreview() {
                     <div className="space-y-6">
                         {data.experiences.map((experience) => {
                             // Get skills used in this experience
-                            const experienceSkills = data.skills.filter((skill) => experience.technologies?.includes(skill.id))
+                            const experienceSkills = experience.technologies || []
 
                             return (
                                 <div key={experience.id} className="border rounded-lg p-6 shadow-sm">
@@ -212,8 +218,8 @@ export function PortfolioPreview() {
                                             <h4 className="text-sm font-medium mb-2">Technologies Used</h4>
                                             <div className="flex flex-wrap gap-1">
                                                 {experienceSkills.map((skill) => (
-                                                    <span key={skill.id} className="px-2 py-1 text-xs rounded-full bg-muted">
-                                                        {skill.name}
+                                                    <span key={skill} className="px-2 py-1 text-xs rounded-full bg-muted">
+                                                        {skill}
                                                     </span>
                                                 ))}
                                             </div>
@@ -265,7 +271,7 @@ export function PortfolioPreview() {
 
                                 <div className="flex">
                                     {Array.from({ length: 5 }).map((_, i) => (
-                                        <div key={i} className={`text-lg ${i < testimonial.rating ? "text-yellow-400" : "text-gray-300"}`}>
+                                        <div key={i} className={`text-lg ${i < (testimonial.rating ?? 0) ? "text-yellow-400" : "text-gray-300"}`}>
                                             ★
                                         </div>
                                     ))}

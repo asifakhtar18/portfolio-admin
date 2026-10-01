@@ -9,8 +9,8 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { toast } from "sonner"
 import { Spinner } from "@/components/ui/spinner"
-import { getAboutData, updateAboutData } from "@/lib/firebase/firestore"
-import { uploadImage, deleteImage } from "@/lib/firebase/storage"
+import { getAbout, updateAbout } from "@/lib/api/about"
+import { ApiError } from "@/lib/api/client"
 import type { AboutData } from "@/lib/types"
 
 export function AboutForm() {
@@ -28,16 +28,20 @@ export function AboutForm() {
     useEffect(() => {
         const fetchData = async () => {
             try {
-                const data = await getAboutData()
+                const data = await getAbout()
                 if (data) {
-                    setFormData(data as AboutData)
+                    setFormData({
+                        bio: data.bio,
+                        designation: data.designation,
+                        profileImage: data.profileImage ?? "",
+                    })
                     if (data.profileImage) {
                         setProfileImagePreview(data.profileImage)
                     }
                 }
             } catch (error) {
                 console.error("Error fetching about data:", error)
-                toast("Failed to fetch about data")
+                toast(error instanceof ApiError ? error.message : "Failed to fetch about data")
             } finally {
                 setLoading(false)
             }
@@ -64,34 +68,31 @@ export function AboutForm() {
         setSaving(true)
 
         try {
-            let profileImage = formData.profileImage || ""
+            // The API uploads the profile image to the tenant's Tenant_Blob when
+            // a file is provided; otherwise the existing profileImage URL is kept.
+            const saved = await updateAbout(
+                {
+                    bio: formData.bio,
+                    designation: formData.designation,
+                    profileImage: formData.profileImage || undefined,
+                },
+                profileImageFile ?? undefined,
+            )
 
-            // Handle profile image upload
-            if (profileImageFile) {
-                // Delete old image if exists
-                if (formData.profileImage) {
-                    await deleteImage(formData.profileImage)
-                }
-
-                // Upload new image
-                profileImage = await uploadImage(
-                    profileImageFile,
-                    `profile/${Date.now()}_profile.${profileImageFile.name.split(".").pop()}`,
-                )
+            setFormData({
+                bio: saved.bio,
+                designation: saved.designation,
+                profileImage: saved.profileImage ?? "",
+            })
+            setProfileImageFile(null)
+            if (saved.profileImage) {
+                setProfileImagePreview(saved.profileImage)
             }
-
-            const updatedData: AboutData = {
-                ...formData,
-                profileImage,
-            }
-
-            await updateAboutData(updatedData)
-            setFormData(updatedData)
 
             toast("About information updated successfully")
         } catch (error) {
             console.error("Error updating about data:", error)
-            toast("Failed to update about information")
+            toast(error instanceof ApiError ? error.message : "Failed to update about information")
         } finally {
             setSaving(false)
         }

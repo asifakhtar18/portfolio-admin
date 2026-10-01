@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Spinner } from "@/components/ui/spinner"
-import { getExperience, createExperience, updateExperience } from "@/lib/firebase/firestore"
-import { uploadImage, deleteImage } from "@/lib/firebase/storage"
+import { getExperience, createExperience, updateExperience } from "@/lib/api/experiences"
+import { ApiError } from "@/lib/api/client"
 import { toast } from "sonner"
 
 
@@ -38,8 +38,6 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
     })
     const [loading, setLoading] = useState(experienceId ? true : false)
     const [saving, setSaving] = useState(false)
-    const [imageFile, setImageFile] = useState<File | null>(null)
-    const [imagePreview, setImagePreview] = useState<string | null>(null)
     const router = useRouter()
 
 
@@ -47,16 +45,20 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
         if (experienceId) {
             const fetchExperience = async () => {
                 try {
-                    const data = await getExperience(experienceId) as unknown as ExperienceData
+                    const data = await getExperience(experienceId)
                     if (data) {
-                        setFormData(data)
-                        if (data.imageUrl && data.imageUrl !== "") {
-                            setImagePreview(data.imageUrl)
-                        }
+                        setFormData({
+                            title: data.title,
+                            company: data.company,
+                            startDate: data.startDate,
+                            endDate: data.endDate,
+                            description: data.description,
+                            imageUrl: data.imageUrl ?? "",
+                        })
                     }
                 } catch (error) {
                     console.error("Error fetching experience:", error)
-                    toast("Failed to fetch experience")
+                    toast(error instanceof ApiError ? error.message : "Failed to fetch experience")
                 } finally {
                     setLoading(false)
                 }
@@ -71,35 +73,14 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
         setFormData((prev) => ({ ...prev, [name]: value }))
     }
 
-    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files[0]) {
-            const file = e.target.files[0]
-            setImageFile(file)
-            setImagePreview(URL.createObjectURL(file))
-        }
-    }
-
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setSaving(true)
 
         try {
-            let imageUrl = formData.imageUrl || ""
-
-            if (imageFile) {
-                if (formData.imageUrl) {
-                    await deleteImage(formData.imageUrl)
-                }
-
-                imageUrl = await uploadImage(
-                    imageFile,
-                    `experience/${Date.now()}_${formData.company.replace(/\s+/g, "-").toLowerCase()}`,
-                )
-            }
-
             const experienceData = {
                 ...formData,
-                imageUrl,
+                imageUrl: formData.imageUrl?.trim() || undefined,
             }
 
             if (experienceId) {
@@ -112,7 +93,7 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
             }
         } catch (error) {
             console.error("Error saving experience:", error)
-            toast("Failed to save experience")
+            toast(error instanceof ApiError ? error.message : "Failed to save experience")
         } finally {
             setSaving(false)
         }
@@ -191,13 +172,19 @@ export function ExperienceForm({ experienceId }: ExperienceFormProps) {
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="image">Company Logo or Related Image (Optional)</Label>
-                <Input id="image" type="file" accept="image/*" onChange={handleImageChange} className="cursor-pointer" />
+                <Label htmlFor="imageUrl">Company Logo or Related Image URL (Optional)</Label>
+                <Input
+                    id="imageUrl"
+                    name="imageUrl"
+                    value={formData.imageUrl}
+                    onChange={handleChange}
+                    placeholder="https://..."
+                />
 
-                {imagePreview && (
+                {formData.imageUrl && formData.imageUrl.trim() !== "" && (
                     <div className="mt-4 relative h-40 w-full sm:w-60 border rounded-md overflow-hidden">
                         <Image
-                            src={imagePreview || "/placeholder.svg"}
+                            src={formData.imageUrl}
                             alt="Experience image preview"
                             fill
                             className="object-contain"

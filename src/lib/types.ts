@@ -27,8 +27,9 @@ export type Project = {
   link?: string;
   sourceCode?: string;
   featured: boolean;
-  createdAt: Date;
-  updatedAt: Date;
+  // Canonical dates are ISO-8601 strings from the API (R16.5).
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type Experience = {
@@ -49,9 +50,12 @@ export type Testimonial = {
   company: string;
   message: string;
   avatar?: string;
-  rating: number; // 1-5 stars
+  rating?: number; // 1-5 stars (optional in canonical model)
+  linkedin?: string;
+  twitter?: string;
+  // Canonical approval field (R16.1) and ISO-8601 date string (R16.5).
   isApproved: boolean;
-  createdAt: Date;
+  createdAt: string;
 };
 
 export type ContactData = {
@@ -67,7 +71,8 @@ export type UpdateLog = {
   id: string;
   section: string;
   title: string;
-  updatedAt: Date;
+  // Canonical date is an ISO-8601 string from the API (R16.5).
+  updatedAt: string;
 };
 
 export type Message = {
@@ -75,5 +80,6 @@ export type Message = {
   name: string;
   email: string;
   message: string;
-  createdAt: Date;
+  // Canonical timestamp field (R16.2), ISO-8601 string (R16.5).
+  createdAt: string;
 };

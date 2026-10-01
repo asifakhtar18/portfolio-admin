@@ -5,17 +5,18 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Menu, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { signOut } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/auth-context"
 import { toast } from "sonner"
 
 export function AdminHeader() {
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
     const router = useRouter()
+    const { logout } = useAuth()
 
 
-    const handleSignOut = async () => {
+    const handleSignOut = () => {
         try {
-            await signOut()
+            logout()
             router.push("/")
             toast("Signed out successfully")
         } catch (error) {
@@ -28,7 +29,7 @@ export function AdminHeader() {
         <header className="bg-white border-b sticky top-0 z-10">
             <div className="container mx-auto px-4 flex items-center justify-between h-16">
                 <Link href="/admin" className="font-bold text-xl">
-                    Portfolio Admin
+                    Folyo
                 </Link>
 
                 <div className="md:hidden">

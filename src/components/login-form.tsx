@@ -4,7 +4,8 @@ import type React from "react"
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { signIn } from "@/lib/firebase/auth"
+import { useAuth } from "@/lib/auth-context"
+import { ApiError } from "@/lib/api/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -15,19 +16,21 @@ export function LoginForm() {
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
     const [isLoading, setIsLoading] = useState(false)
+    const { login } = useAuth()
     const router = useRouter()
-
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setIsLoading(true)
 
         try {
-            await signIn(email, password)
+            await login(email, password)
             router.push("/admin")
         } catch (error) {
+            const message =
+                error instanceof ApiError ? error.message : "Failed to sign in"
             console.error("Login error:", error)
-            toast("Failed to sign in")
+            toast(message)
         } finally {
             setIsLoading(false)
         }
@@ -66,4 +69,3 @@ export function LoginForm() {
         </Card>
     )
 }
-

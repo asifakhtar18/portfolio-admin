@@ -17,15 +17,11 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { getProjects, deleteProject } from "@/lib/firebase/firestore"
+import { getProjects, deleteProject } from "@/lib/api/projects"
+import { ApiError } from "@/lib/api/client"
+import type { ProjectResponse } from "@/lib/api/types"
 
-type Project = {
-    id: string
-    name: string
-    description: string
-    imageUrl: string
-    link?: string
-}
+type Project = ProjectResponse
 
 export function ProjectsList() {
     const [projects, setProjects] = useState<Project[]>([])
@@ -37,10 +33,10 @@ export function ProjectsList() {
         const fetchProjects = async () => {
             try {
                 const data = await getProjects()
-                setProjects(data as unknown as Project[])
+                setProjects(data)
             } catch (error) {
                 console.error("Error fetching projects:", error)
-                toast("Failed to fetch projects")
+                toast(error instanceof ApiError ? error.message : "Failed to fetch projects")
             } finally {
                 setLoading(false)
             }
@@ -58,7 +54,7 @@ export function ProjectsList() {
             toast("Project deleted successfully")
         } catch (error) {
             console.error("Error deleting project:", error)
-            toast("Failed to delete project")
+            toast(error instanceof ApiError ? error.message : "Failed to delete project")
         } finally {
             setProjectToDelete(null)
         }
@@ -86,11 +82,13 @@ export function ProjectsList() {
     return (
         <div className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {projects.map((project) => (
+                {projects.map((project) => {
+                    const mainImage = project.images?.find((img) => img.isMain) ?? project.images?.[0]
+                    return (
                     <div key={project.id} className="border rounded-lg overflow-hidden">
                         <div className="relative h-48 w-full">
                             <Image
-                                src={project.imageUrl || "/placeholder.svg?height=200&width=400"}
+                                src={mainImage?.url || "/placeholder.svg?height=200&width=400"}
                                 alt={project.name}
                                 className="object-cover"
                                 fill
@@ -114,7 +112,8 @@ export function ProjectsList() {
                             </div>
                         </div>
                     </div>
-                ))}
+                    )
+                })}
             </div>
 
             <AlertDialog open={!!projectToDelete} onOpenChange={() => setProjectToDelete(null)}>

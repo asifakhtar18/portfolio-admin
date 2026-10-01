@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Edit, Trash2, CheckCircle, XCircle } from "lucide-react"
+import { Trash2, CheckCircle, XCircle } from "lucide-react"
 import Image from "next/image"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
@@ -17,15 +17,14 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { getTestimonials, updateTestimonial, deleteTestimonial } from "@/lib/firebase/firestore"
+import { getTestimonials, setTestimonialApproval, deleteTestimonial } from "@/lib/api/testimonials"
+import { ApiError } from "@/lib/api/client"
 import type { Testimonial } from "@/lib/types"
 
 export function TestimonialsList() {
     const [testimonials, setTestimonials] = useState<Testimonial[]>([])
     const [loading, setLoading] = useState(true)
     const [testimonialToDelete, setTestimonialToDelete] = useState<string | null>(null)
-    const [testimonialToEdit, setTestimonialToEdit] = useState<Testimonial | null>(null)
-    const [editDialogOpen, setEditDialogOpen] = useState(false)
     const [saving, setSaving] = useState(false)
 
     useEffect(() => {
@@ -35,27 +34,29 @@ export function TestimonialsList() {
     const fetchTestimonials = async () => {
         try {
             setLoading(true)
-            const data = await getTestimonials(false)
+            const data = await getTestimonials()
             setTestimonials(data)
         } catch (error) {
             console.error("Error fetching testimonials:", error)
-            toast("Failed to fetch testimonials")
+            toast(error instanceof ApiError ? error.message : "Failed to fetch testimonials")
         } finally {
             setLoading(false)
         }
     }
 
-    const handleUpdateStatus = async (id: string, isApproved: boolean) => {
+    const handleSetApproval = async (id: string, isApproved: boolean) => {
         try {
             setSaving(true)
-            await updateTestimonial(id, { isApproved })
+            const updated = await setTestimonialApproval(id, isApproved)
 
-            setTestimonials((prev) => prev.map((item) => (item.id === id ? { ...item, isApproved } : item)))
+            setTestimonials((prev) =>
+                prev.map((item) => (item.id === id ? { ...item, isApproved: updated.isApproved } : item)),
+            )
 
-            toast("Testimonial status updated successfully")
+            toast(isApproved ? "Testimonial approved" : "Testimonial moved back to pending")
         } catch (error) {
-            console.error("Error updating testimonial status:", error)
-            toast("Failed to update testimonial status")
+            console.error("Error updating testimonial approval:", error)
+            toast(error instanceof ApiError ? error.message : "Failed to update testimonial")
         } finally {
             setSaving(false)
         }
@@ -73,31 +74,10 @@ export function TestimonialsList() {
             toast("Testimonial deleted successfully")
         } catch (error) {
             console.error("Error deleting testimonial:", error)
-            toast("Failed to delete testimonial")
+            toast(error instanceof ApiError ? error.message : "Failed to delete testimonial")
         } finally {
             setSaving(false)
             setTestimonialToDelete(null)
-        }
-    }
-
-    const handleEditSubmit = async () => {
-        if (!testimonialToEdit) return
-
-        try {
-            setSaving(true)
-            await updateTestimonial(testimonialToEdit.id, testimonialToEdit)
-
-            setTestimonials((prev) => prev.map((item) => (item.id === testimonialToEdit.id ? testimonialToEdit : item)))
-
-            setEditDialogOpen(false)
-            setTestimonialToEdit(null)
-
-            toast("Testimonial updated successfully")
-        } catch (error) {
-            console.error("Error updating testimonial:", error)
-            toast("Failed to update testimonial")
-        } finally {
-            setSaving(false)
         }
     }
 
@@ -138,11 +118,7 @@ export function TestimonialsList() {
                             <TestimonialCard
                                 key={testimonial.id}
                                 testimonial={testimonial}
-                                onApprove={() => handleUpdateStatus(testimonial.id, true)}
-                                onEdit={() => {
-                                    setTestimonialToEdit(testimonial)
-                                    setEditDialogOpen(true)
-                                }}
+                                onApprove={() => handleSetApproval(testimonial.id, true)}
                                 onDelete={() => setTestimonialToDelete(testimonial.id)}
                                 pendingView
                             />
@@ -160,11 +136,7 @@ export function TestimonialsList() {
                             <TestimonialCard
                                 key={testimonial.id}
                                 testimonial={testimonial}
-                                onUnapprove={() => handleUpdateStatus(testimonial.id, false)}
-                                onEdit={() => {
-                                    setTestimonialToEdit(testimonial)
-                                    setEditDialogOpen(true)
-                                }}
+                                onUnapprove={() => handleSetApproval(testimonial.id, false)}
                                 onDelete={() => setTestimonialToDelete(testimonial.id)}
                             />
                         ))
@@ -197,7 +169,6 @@ type TestimonialCardProps = {
     testimonial: Testimonial
     onApprove?: () => void
     onUnapprove?: () => void
-    onEdit: () => void
     onDelete: () => void
     pendingView?: boolean
 }
@@ -206,7 +177,6 @@ function TestimonialCard({
     testimonial,
     onApprove,
     onUnapprove,
-    onEdit,
     onDelete,
     pendingView = false,
 }: TestimonialCardProps) {
@@ -233,7 +203,7 @@ function TestimonialCard({
                         <h3 className="font-semibold">{testimonial.name}</h3>
                         <div className="flex items-center">
                             {Array.from({ length: 5 }).map((_, i) => (
-                                <div key={i} className={`size-4 ${i < testimonial.rating ? "text-yellow-400" : "text-gray-300"}`}>
+                                <div key={i} className={`size-4 ${i < (testimonial.rating ?? 0) ? "text-yellow-400" : "text-gray-300"}`}>
                                     ★
                                 </div>
                             ))}
@@ -248,7 +218,7 @@ function TestimonialCard({
                     <p className="text-sm mt-2">{testimonial.message}</p>
 
                     <div className="flex items-center justify-between pt-2 mt-2 border-t">
-                        <p className="text-xs text-muted-foreground">Received: {testimonial.createdAt.toLocaleDateString()}</p>
+                        <p className="text-xs text-muted-foreground">Received: {new Date(testimonial.createdAt).toLocaleDateString()}</p>
 
                         <div className="flex gap-1">
                             {pendingView ? (
@@ -257,10 +227,12 @@ function TestimonialCard({
                                     Approve
                                 </Button>
                             ) : (
-                                <Button size="sm" variant="outline" onClick={onUnapprove} title="Unapprove">
-                                    <XCircle className="size-4 mr-1" />
-                                    Unapprove
-                                </Button>
+                                onUnapprove && (
+                                    <Button size="sm" variant="outline" onClick={onUnapprove} title="Move back to pending">
+                                        <XCircle className="size-4 mr-1" />
+                                        Unapprove
+                                    </Button>
+                                )
                             )}
 
                             <Button size="icon" variant="ghost" onClick={onDelete} title="Delete">

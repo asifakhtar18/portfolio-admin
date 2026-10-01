@@ -8,16 +8,17 @@ import { useAuth } from "@/lib/auth-context"
 import { Spinner } from "@/components/ui/spinner"
 
 export function ProtectedRoute({ children }: { children: React.ReactNode }) {
-    const { user, loading } = useAuth()
+    const { isAuthenticated, loading } = useAuth()
     const router = useRouter()
     const [isClient, setIsClient] = useState(false)
 
     useEffect(() => {
         setIsClient(true)
-        if (!loading && !user) {
+        if (!loading && !isAuthenticated) {
+            // The login page lives at "/" (R17.4).
             router.push("/")
         }
-    }, [user, loading, router])
+    }, [isAuthenticated, loading, router])
 
     if (loading || !isClient) {
         return (
@@ -27,10 +28,9 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
         )
     }
 
-    if (!user) {
+    if (!isAuthenticated) {
         return null
     }
 
     return <>{children}</>
 }
-

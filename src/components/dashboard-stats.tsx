@@ -2,14 +2,11 @@
 
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { getStats } from "@/lib/firebase/firestore"
+import { getStats } from "@/lib/api/stats"
+import type { StatsResponse } from "@/lib/api/types"
 import { Spinner } from "@/components/ui/spinner"
 
-type Stats = {
-    projects: number
-    skills: number
-    experience: number
-}
+type Stats = StatsResponse
 
 export function DashboardStats() {
     const [stats, setStats] = useState<Stats | null>(null)
@@ -65,7 +62,7 @@ export function DashboardStats() {
                     <CardTitle className="text-sm font-medium">Experience Entries</CardTitle>
                 </CardHeader>
                 <CardContent>
-                    <div className="text-2xl font-bold">{stats?.experience || 0}</div>
+                    <div className="text-2xl font-bold">{stats?.experiences || 0}</div>
                 </CardContent>
             </Card>
         </div>
