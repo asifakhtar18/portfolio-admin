@@ -2,67 +2,87 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Folyo admin design tokens.
+ *
+ * A focused authoring workspace, not a marketing dashboard. Warm-neutral canvas,
+ * a single functional indigo accent used only for action/active state, and a
+ * cool charcoal "ink" for text and structure. One accent, quiet surroundings.
+ * HSL channel triples (shadcn convention) so Tailwind utilities compose.
+ */
+
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    /* Canvas & surfaces */
+    --background: 60 11% 97%;        /* warm-neutral app canvas #F7F7F5 */
+    --foreground: 222 12% 10%;       /* cool charcoal ink #16181D */
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 0 0% 100%;               /* surfaces sit above the canvas */
+    --card-foreground: 222 12% 10%;
 
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover-foreground: 222 12% 10%;
 
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    /* Single functional accent: action + active only, never decoration */
+    --primary: 227 64% 54%;          /* confident indigo #3B5BDB */
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    /* Quiet neutrals */
+    --secondary: 60 6% 94%;
+    --secondary-foreground: 222 12% 18%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 60 6% 94%;
+    --muted-foreground: 222 6% 44%;  /* secondary text #6B6F76 */
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 60 6% 94%;
+    --accent-foreground: 222 12% 18%;
 
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    /* Semantic */
+    --destructive: 1 77% 55%;        /* #E03131 */
+    --destructive-foreground: 0 0% 100%;
+    --positive: 134 54% 40%;         /* #2F9E44 */
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    /* Lines & fields */
+    --border: 50 7% 89%;             /* hairline #E4E4E1 */
+    --input: 50 7% 86%;
+    --ring: 227 64% 54%;             /* focus = accent */
 
     --radius: 0.5rem;
+
+    /* Strong custom easing (built-in CSS easings are too weak). */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
   }
 
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
+    --background: 222 14% 8%;
+    --foreground: 60 9% 96%;
 
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
+    --card: 222 13% 11%;
+    --card-foreground: 60 9% 96%;
 
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
+    --popover: 222 13% 11%;
+    --popover-foreground: 60 9% 96%;
 
-    --primary: 217.2 91.2% 59.8%;
-    --primary-foreground: 222.2 47.4% 11.2%;
+    --primary: 227 70% 64%;
+    --primary-foreground: 222 14% 8%;
 
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
+    --secondary: 222 10% 18%;
+    --secondary-foreground: 60 9% 96%;
 
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
+    --muted: 222 10% 18%;
+    --muted-foreground: 222 8% 62%;
 
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
+    --accent: 222 10% 18%;
+    --accent-foreground: 60 9% 96%;
 
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive: 1 70% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --positive: 134 48% 52%;
 
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --border: 222 10% 20%;
+    --input: 222 10% 22%;
+    --ring: 227 70% 64%;
   }
 }
 
@@ -72,5 +92,15 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* Tabular, mono numerals for data (stats, counts, dates). Opt-in via class. */
+  .tabular {
+    font-family: var(--font-geist-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.01em;
   }
 }

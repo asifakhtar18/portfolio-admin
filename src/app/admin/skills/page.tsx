@@ -1,23 +1,17 @@
 import { SkillsForm } from "@/components/skills-form"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageHeader } from "@/components/page-header"
+import { PageTransition } from "@/components/ui/motion"
 
 export default function SkillsPage() {
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Skills</h1>
-                <p className="text-muted-foreground">Manage your technical skills and competencies</p>
+        <PageTransition>
+            <PageHeader
+                title="Skills"
+                description="The technologies and competencies shown on your portfolio."
+            />
+            <div className="max-w-2xl rounded-lg border bg-card p-5 sm:p-6">
+                <SkillsForm />
             </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Skills Management</CardTitle>
-                    <CardDescription>Add, edit, or remove skills from your portfolio</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <SkillsForm />
-                </CardContent>
-            </Card>
-        </div>
+        </PageTransition>
     )
 }
-

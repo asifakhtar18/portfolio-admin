@@ -1,82 +1,90 @@
-'use client'
-import { getMessages } from "@/lib/api/messages";
-import type { MessageResponse } from "@/lib/api/types";
-import { useEffect, useState } from "react";
+"use client"
+
+import { useEffect, useState } from "react"
+import { Mail } from "lucide-react"
+import { getMessages } from "@/lib/api/messages"
+import type { MessageResponse } from "@/lib/api/types"
+import { ApiError } from "@/lib/api/client"
+import { PageHeader } from "@/components/page-header"
+import { PageTransition, Stagger, FadeItem } from "@/components/ui/motion"
+import { Spinner } from "@/components/ui/spinner"
+import { toast } from "sonner"
 
 type Message = MessageResponse
 
 export default function MessagesPage() {
-    const [messages, setMessages] = useState<Message[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    console.log(messages);
+    const [messages, setMessages] = useState<Message[]>([])
+    const [loading, setLoading] = useState(true)
 
     useEffect(() => {
         const fetchMessages = async () => {
             try {
-                const fetchedMessages = await getMessages();
-                setMessages(fetchedMessages);
+                const data = await getMessages()
+                setMessages(data)
             } catch (error) {
-                console.error("Error fetching messages:", error);
+                console.error("Error fetching messages:", error)
+                toast(error instanceof ApiError ? error.message : "Could not load messages")
             } finally {
-                setLoading(false);
+                setLoading(false)
             }
-        };
-
-        fetchMessages();
-    }, []);
+        }
+        fetchMessages()
+    }, [])
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Messages</h1>
-                <p className="text-muted-foreground">Manage your portfolio messages</p>
-            </div>
+        <PageTransition>
+            <PageHeader
+                title="Messages"
+                description="Messages visitors sent through your portfolio's contact form."
+            />
 
             {loading ? (
-                <div>Loading messages...</div>
+                <div className="flex justify-center py-16">
+                    <Spinner size="lg" />
+                </div>
+            ) : messages.length === 0 ? (
+                <div className="rounded-lg border border-dashed py-14 text-center">
+                    <p className="text-sm text-muted-foreground">No messages yet.</p>
+                    <p className="text-sm text-muted-foreground">
+                        When someone writes to you from your portfolio, it shows up here.
+                    </p>
+                </div>
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <Stagger className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {messages.map((message) => (
-                        <div key={message.id} className="bg-white rounded-lg shadow-md p-4 md:p-6 space-y-3 md:space-y-4">
-                            <div className="flex items-center space-x-2">
-                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <span className="text-primary text-sm md:text-base font-semibold">
-                                        {message.name.charAt(0).toUpperCase()}
-                                    </span>
+                        <FadeItem key={message.id} className="flex flex-col rounded-lg border bg-card p-4">
+                            <div className="flex items-center gap-3">
+                                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                                    {message.name.charAt(0).toUpperCase()}
                                 </div>
-                                <div className="flex-1">
-                                    <h3 className="font-semibold text-sm md:text-base">{message.name}</h3>
-                                    <p className="text-xs md:text-sm text-muted-foreground">{message.email}</p>
+                                <div className="min-w-0 flex-1">
+                                    <h3 className="truncate text-sm font-medium">{message.name}</h3>
+                                    <p className="truncate text-xs text-muted-foreground">{message.email}</p>
                                 </div>
                             </div>
-                            <div className="text-xs md:text-sm text-gray-600">
-                                {message.message}
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <div className="text-xs text-muted-foreground">
-                                    {new Date(message.createdAt).toLocaleDateString('en-US', {
-                                        day: 'numeric',
-                                        month: 'short',
-                                        year: 'numeric',
+
+                            <p className="mt-3 flex-1 text-sm text-foreground/90">{message.message}</p>
+
+                            <div className="mt-4 flex items-center justify-between border-t pt-3">
+                                <span className="tabular text-xs text-muted-foreground">
+                                    {new Date(message.createdAt).toLocaleDateString("en-US", {
+                                        day: "numeric",
+                                        month: "short",
+                                        year: "numeric",
                                     })}
-                                    {' '}
-                                    {new Date(message.createdAt).toLocaleTimeString('en-US', {
-                                        hour: '2-digit',
-                                        minute: '2-digit',
-                                    })}
-                                </div>
+                                </span>
                                 <a
-                                    href={`mailto:${message.email}?subject=Re: Message from Portfolio - ${message.name}`}
-                                    className="inline-flex items-center justify-center rounded-md text-xs md:text-sm px-2.5 py-1.5 bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+                                    href={`mailto:${message.email}?subject=Re: Message from your portfolio`}
+                                    className="inline-flex items-center gap-1.5 rounded-md bg-primary px-2.5 py-1.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90"
                                 >
+                                    <Mail className="h-3.5 w-3.5" />
                                     Reply
                                 </a>
                             </div>
-                        </div>
+                        </FadeItem>
                     ))}
-                </div>
+                </Stagger>
             )}
-        </div>
-    );
+        </PageTransition>
+    )
 }

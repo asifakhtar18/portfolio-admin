@@ -1,23 +1,17 @@
 import { ContactForm } from "@/components/contact-form"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageHeader } from "@/components/page-header"
+import { PageTransition } from "@/components/ui/motion"
 
 export default function ContactPage() {
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">Contact Information</h1>
-                <p className="text-muted-foreground">Update your contact details</p>
+        <PageTransition>
+            <PageHeader
+                title="Contact"
+                description="How visitors reach you, plus the social links shown on your portfolio."
+            />
+            <div className="max-w-2xl rounded-lg border bg-card p-5 sm:p-6">
+                <ContactForm />
             </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Contact Details</CardTitle>
-                    <CardDescription>Update your contact information and social media links</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ContactForm />
-                </CardContent>
-            </Card>
-        </div>
+        </PageTransition>
     )
 }
-

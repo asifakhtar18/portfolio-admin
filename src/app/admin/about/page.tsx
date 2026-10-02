@@ -1,23 +1,17 @@
 import { AboutForm } from "@/components/about-form"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { PageHeader } from "@/components/page-header"
+import { PageTransition } from "@/components/ui/motion"
 
 export default function AboutPage() {
     return (
-        <div className="space-y-6">
-            <div>
-                <h1 className="text-3xl font-bold tracking-tight">About Section</h1>
-                <p className="text-muted-foreground">Update your personal information and bio</p>
+        <PageTransition>
+            <PageHeader
+                title="About"
+                description="Your bio, title, and profile photo — the introduction on your portfolio."
+            />
+            <div className="max-w-2xl rounded-lg border bg-card p-5 sm:p-6">
+                <AboutForm />
             </div>
-            <Card>
-                <CardHeader>
-                    <CardTitle>Personal Information</CardTitle>
-                    <CardDescription>Update your bio, designation, and personal details</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <AboutForm />
-                </CardContent>
-            </Card>
-        </div>
+        </PageTransition>
     )
 }
-

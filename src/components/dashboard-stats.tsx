@@ -1,15 +1,20 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import Link from "next/link"
 import { getStats } from "@/lib/api/stats"
 import type { StatsResponse } from "@/lib/api/types"
-import { Spinner } from "@/components/ui/spinner"
 
-type Stats = StatsResponse
+type Stat = { label: string; value: number; href: string }
 
+/**
+ * Content counts for the Overview, rendered as large tabular numerals (this is
+ * a data tool, so mono numerals are information, not decoration). Each stat
+ * links to the section it summarizes. Loading uses a skeleton rather than
+ * spinners-in-cards so the layout does not jump.
+ */
 export function DashboardStats() {
-    const [stats, setStats] = useState<Stats | null>(null)
+    const [stats, setStats] = useState<StatsResponse | null>(null)
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
@@ -23,49 +28,31 @@ export function DashboardStats() {
                 setLoading(false)
             }
         }
-
         fetchStats()
     }, [])
 
-    if (loading) {
-        return (
-            <div className="grid gap-4 md:grid-cols-3">
-                {[...Array(3)].map((_, i) => (
-                    <Card key={i} className="flex items-center justify-center p-6">
-                        <Spinner />
-                    </Card>
-                ))}
-            </div>
-        )
-    }
+    const items: Stat[] = [
+        { label: "Projects", value: stats?.projects ?? 0, href: "/admin/projects" },
+        { label: "Skills", value: stats?.skills ?? 0, href: "/admin/skills" },
+        { label: "Experience", value: stats?.experiences ?? 0, href: "/admin/experience" },
+    ]
 
     return (
-        <div className="grid gap-4 md:grid-cols-3">
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Total Projects</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats?.projects || 0}</div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Skills</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats?.skills || 0}</div>
-                </CardContent>
-            </Card>
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between pb-2">
-                    <CardTitle className="text-sm font-medium">Experience Entries</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <div className="text-2xl font-bold">{stats?.experiences || 0}</div>
-                </CardContent>
-            </Card>
+        <div className="grid gap-px overflow-hidden rounded-lg border bg-border sm:grid-cols-3">
+            {items.map((item) => (
+                <Link
+                    key={item.label}
+                    href={item.href}
+                    className="group bg-card p-5 transition-colors hover:bg-muted/50"
+                >
+                    <p className="text-sm text-muted-foreground">{item.label}</p>
+                    {loading ? (
+                        <div className="mt-2 h-9 w-12 animate-pulse rounded bg-muted" />
+                    ) : (
+                        <p className="tabular mt-1 text-3xl font-semibold text-foreground">{item.value}</p>
+                    )}
+                </Link>
+            ))}
         </div>
     )
 }
-
