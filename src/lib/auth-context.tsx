@@ -13,6 +13,30 @@ import {
 import type { TenantProfile } from "@/lib/api/types"
 
 /**
+ * The result of a `login` attempt surfaced to the UI.
+ *   - `token`: credentials valid and verified; the session is now established.
+ *   - `email_not_verified`: valid credentials but the email is unverified; the
+ *     form routes into the OTP step and auto-resends a code (R6.3).
+ *
+ * Any other failure (bad credentials, etc.) still throws {@link ApiError} so
+ * the caller surfaces it via the usual toast pattern (R6.4).
+ */
+export type LoginOutcome =
+    | { kind: "token" }
+    | { kind: "email_not_verified" }
+
+/**
+ * The result of a `register` attempt surfaced to the UI.
+ *   - `token`: email OTP is disabled, a JWT was issued, and the session is now
+ *     established (OTP step is skipped, R6.6).
+ *   - `pending_verification`: email OTP is required (or the email exists but is
+ *     unverified); no token yet, so the form routes into the OTP step (R6.2).
+ */
+export type RegisterOutcome =
+    | { kind: "token" }
+    | { kind: "pending_verification" }
+
+/**
  * Auth context for the portfolio-admin CMS.
  *
  * Replaces the previous Firebase Auth context (Requirement 17). The tenant's
@@ -31,10 +55,26 @@ interface AuthContextType {
     loading: boolean
     /** Convenience flag: a session exists when both a token and tenant are present. */
     isAuthenticated: boolean
-    /** Log in with email/password; stores the JWT and loads the profile (R17.3). */
-    login: (email: string, password: string) => Promise<void>
-    /** Register a new tenant; stores the JWT and loads the profile (R17.5). */
-    register: (email: string, username: string, password: string) => Promise<void>
+    /**
+     * Log in with email/password. Returns a {@link LoginOutcome} so the UI can
+     * branch on the unverified-email case (R6.3) instead of catching a sentinel
+     * error. On `token` the JWT is stored and the profile loaded (R17.3). Other
+     * failures throw {@link ApiError}.
+     */
+    login: (email: string, password: string) => Promise<LoginOutcome>
+    /**
+     * Register a new tenant. Returns a {@link RegisterOutcome}: `token` when OTP
+     * is disabled (session established) or `pending_verification` when the OTP
+     * step is required (R6.2). Other failures throw {@link ApiError}.
+     */
+    register: (email: string, username: string, password: string) => Promise<RegisterOutcome>
+    /**
+     * Establish a session from an already-issued JWT: store it and load the
+     * profile. Used by the OTP-success path and the Google sign-in handoff
+     * (both receive a token out-of-band from the password-login flow), reusing
+     * the exact same storage + profile-load steps as `login` (R6.1, R6.2).
+     */
+    completeWithToken: (token: string) => Promise<void>
     /** Clear the session (token + state). */
     logout: () => void
     /** Reload the tenant profile from `/auth/me` (e.g. after saving credentials). */
@@ -47,8 +87,9 @@ const AuthContext = createContext<AuthContextType>({
     storageConfigured: false,
     loading: true,
     isAuthenticated: false,
-    login: async () => {},
-    register: async () => {},
+    login: async () => ({ kind: "token" }),
+    register: async () => ({ kind: "token" }),
+    completeWithToken: async () => {},
     logout: () => {},
     refreshProfile: async () => {},
 })
@@ -90,17 +131,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [])
 
-    const login = useCallback(async (email: string, password: string) => {
+    // Store a JWT and load the profile. Shared by login, OTP success, and the
+    // Google handoff. On failure the session is left clean so the caller can
+    // surface the error without a half-authenticated state.
+    const establishSession = useCallback(async (newToken: string) => {
         setLoading(true)
         try {
-            const { token: newToken } = await apiLogin({ email, password })
             setStoredToken(newToken)
             const profile = await apiMe()
             setToken(newToken)
             setTenant(profile)
         } catch (error) {
-            // Leave the session untouched on failure so callers can surface the
-            // error without a half-authenticated state.
             clearStoredToken()
             setToken(null)
             setTenant(null)
@@ -110,25 +151,39 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
     }, [])
 
-    const register = useCallback(
-        async (email: string, username: string, password: string) => {
-            setLoading(true)
-            try {
-                const { token: newToken } = await apiRegister({ email, username, password })
-                setStoredToken(newToken)
-                const profile = await apiMe()
-                setToken(newToken)
-                setTenant(profile)
-            } catch (error) {
-                clearStoredToken()
-                setToken(null)
-                setTenant(null)
-                throw error
-            } finally {
-                setLoading(false)
+    const login = useCallback(
+        async (email: string, password: string): Promise<LoginOutcome> => {
+            const result = await apiLogin({ email, password })
+            if (result.kind !== "token") {
+                // Valid credentials but the email is not yet verified. Leave the
+                // session unset and let the caller route into the OTP step and
+                // auto-resend (R6.3).
+                return { kind: "email_not_verified" }
             }
+            await establishSession(result.token)
+            return { kind: "token" }
         },
-        [],
+        [establishSession],
+    )
+
+    const register = useCallback(
+        async (email: string, username: string, password: string): Promise<RegisterOutcome> => {
+            const result = await apiRegister({ email, username, password })
+            if (!("token" in result)) {
+                // Email OTP is enabled (or the email already exists and is
+                // unverified): no token yet. Leave the session unset; the caller
+                // routes into the OTP step to complete verification (R6.2).
+                return { kind: "pending_verification" }
+            }
+            await establishSession(result.token)
+            return { kind: "token" }
+        },
+        [establishSession],
+    )
+
+    const completeWithToken = useCallback(
+        (newToken: string) => establishSession(newToken),
+        [establishSession],
     )
 
     const logout = useCallback(() => {
@@ -151,6 +206,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: !!token && !!tenant,
         login,
         register,
+        completeWithToken,
         logout,
         refreshProfile,
     }
